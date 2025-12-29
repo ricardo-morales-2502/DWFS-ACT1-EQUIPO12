@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useCountdownRedirect } from "../../hooks/useCountdownRedirect";
+import {useParams} from "react-router-dom";
 
 export default function ConfirmPanel({ method }) {
   const { t } = useTranslation("checkout");
+  const { lang } = useParams();
 
   const orderId = useMemo(() => {
     const rnd = Math.random().toString(16).slice(2, 10).toUpperCase();
@@ -11,6 +14,12 @@ export default function ConfirmPanel({ method }) {
 
   const methodText =
     method === "paypal" ? "PayPal" : method === "bank" ? (t("method.bank.name")) : (t("method.card.name"));
+
+  const { remaining, cancelled } = useCountdownRedirect({
+    seconds: 5,
+    to: `/${lang}/catalog`,
+    enabled: true
+  });
 
   const now = new Date();
   const dateText = now.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });

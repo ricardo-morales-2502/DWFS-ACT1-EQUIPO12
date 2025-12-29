@@ -3,6 +3,15 @@ import { useTranslation } from "react-i18next";
 export default function OrderSummary({ lang, items, totals }) {
   const { t } = useTranslation("checkout");
 
+  // Si items/totals están vacíos, intentar recuperar de localStorage
+  let displayItems = items;
+  let displayTotals = totals;
+  if ((!items || items.length === 0) && (!totals || totals.total === 0)) {
+    const saved = localStorage.getItem("checkoutSummary");
+    if (saved) { const parsed = JSON.parse(saved);
+      displayItems = parsed.items || []; displayTotals = parsed.totals || {
+        subtotal: 0, discount: 0, shipping: 0, taxes: 0, total: 0 }; } }
+
   return (
       <div className="panel panel--elevated" aria-label={t("summary.title")}>
         <div className="panel__head">

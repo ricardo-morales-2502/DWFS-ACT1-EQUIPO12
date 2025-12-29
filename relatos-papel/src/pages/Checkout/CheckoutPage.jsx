@@ -11,7 +11,6 @@ import PayMethods from "../../components/checkout/PayMethods";
 import CardForm from "../../components/checkout/CardForm";
 import OrderSummary from "../../components/checkout/OrderSummary";
 import ConfirmPanel from "../../components/checkout/ConfirmPanel";
-import useCountdownRedirect from "../../hooks/useCountdownRedirect";
 
 import { getCart, getTotals, saveCart, saveTotals } from "../../utils/cartUtils";
 
@@ -33,7 +32,6 @@ export default function CheckoutPage() {
   const [cardNumber, setCardNumber] = useState("");
   const [cardExp, setCardExp] = useState("");
   const [cardCvc, setCardCvc] = useState("");
-  const countdown = useCountdownRedirect(`/${lang}/catalog`, 5, paid);
 
   // Totales siempre inicializados con valores seguros
   const [totals, setTotals] = useState(
@@ -66,11 +64,12 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (payDisabled)
       return;
+    // Guardar resumen en localStorage
+    localStorage.setItem("checkoutSummary", JSON.stringify({ items, totals }));
     setPaid(true);
     saveCart([]);
-    saveTotals({
-      subtotal: 0, discount: 0, shipping: 0, taxes: 0, total: 0
-    });
+    saveTotals({ subtotal: 0, discount: 0, shipping: 0, taxes: 0, total: 0 });
+
     window.dispatchEvent(new Event("cartUpdated"));
     window.dispatchEvent(new Event("cartTotalsUpdated"));
   };
