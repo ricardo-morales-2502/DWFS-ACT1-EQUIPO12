@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -11,6 +11,9 @@ import PayMethods from "../../components/checkout/PayMethods";
 import CardForm from "../../components/checkout/CardForm";
 import OrderSummary from "../../components/checkout/OrderSummary";
 import ConfirmPanel from "../../components/checkout/ConfirmPanel";
+import useCountdownRedirect from "../../hooks/useCountdownRedirect";
+
+import { getCart, getTotals, saveCart, saveTotals } from "../../utils/cartUtils";
 
 import "../../assets/css/styles-checkout.css";
 
@@ -30,76 +33,55 @@ export default function CheckoutPage() {
   const [cardNumber, setCardNumber] = useState("");
   const [cardExp, setCardExp] = useState("");
   const [cardCvc, setCardCvc] = useState("");
+  const countdown = useCountdownRedirect(`/${lang}/catalog`, 5, paid);
+
+  // Totales siempre inicializados con valores seguros
+  const [totals, setTotals] = useState(
+      getTotals() || { subtotal: 0, discount: 0, shipping: 0, taxes: 0, total: 0 }
+  );
 
   useEffect(() => {
     if (lang && i18n.language !== lang) i18n.changeLanguage(lang);
   }, [lang, i18n]);
 
   useEffect(() => {
-    let alive = true;
+    setItems(getCart());
+    setLoading(false);
+    const onTotalsUpdated = () => setTotals(getTotals());
+    window.addEventListener("cartTotalsUpdated", onTotalsUpdated);
+    return () => window.removeEventListener("cartTotalsUpdated", onTotalsUpdated);
+  },
+      []);
 
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await fetch("/data/checkout-items.json");
-        const data = await res.json();
-        if (alive) setItems(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error("Error cargando checkout-items.json:", e);
-        if (alive) setItems([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const totals = useMemo(() => {
-    const subtotal = items.reduce(
-        (acc, it) => acc + Number(it.price || 0) * Number(it.qty || 1),
-        0
-    );
-    const shipping = subtotal > 0 ? 2.5 : 0;
-    const taxes = subtotal * 0.12;
-    const total = subtotal + shipping + taxes;
-    return { subtotal, shipping, taxes, total };
-  }, [items]);
-
-  const payDisabled = useMemo(() => {
-    if (loading || items.length === 0) return true;
-    if (method === "card") {
-      return (
-          !cardName.trim() ||
-          cardNumber.replace(/\s/g, "").length < 12 ||
-          !cardExp.trim() ||
-          cardCvc.trim().length < 3
-      );
-    }
-    return false;
-  }, [loading, items.length, method, cardName, cardNumber, cardExp, cardCvc]);
+  const payDisabled =
+      loading ||
+      items.length === 0 ||
+      (method === "card" &&
+          (!cardName.trim() ||
+              cardNumber.replace(/\s/g, "").length < 12 ||
+              !cardExp.trim() ||
+              cardCvc.trim().length < 3));
 
   const onPay = (e) => {
     e.preventDefault();
-    if (payDisabled) return;
-
-    console.log("PAY", { method, totals, items });
+    if (payDisabled)
+      return;
     setPaid(true);
+    saveCart([]);
+    saveTotals({
+      subtotal: 0, discount: 0, shipping: 0, taxes: 0, total: 0
+    });
+    window.dispatchEvent(new Event("cartUpdated"));
+    window.dispatchEvent(new Event("cartTotalsUpdated"));
   };
-
-  const seoTitle = t("seo.title");
-  const seoDescription = t("seo.description");
-  const seoKeywords = t("seo.keywords");
 
   return (
       <div className="checkoutPage pay--full">
         <Head
             lang={lang}
-            title={seoTitle}
-            description={seoDescription}
-            keywords={seoKeywords}
+            title={t("seo.title")}
+            description={t("seo.description")}
+            keywords={t("seo.keywords")}
             canonical={canonical}
             ogImage="/assets/img/og-checkout.jpg"
             siteName="Librería dígital"

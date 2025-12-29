@@ -20,10 +20,34 @@ export function addToCart(book) {
     window.dispatchEvent(new Event("cartUpdated"));
 }
 
-export function saveTotals({ subtotal, discount, shipping, taxes, total }) {
-    localStorage.setItem("checkoutTotals", JSON.stringify({ subtotal, discount, shipping, taxes, total }));
+export function saveTotals({ subtotal, discount = 0, shipping, taxes, total }) {
+    const safeTotals = {
+        subtotal: Number(subtotal) || 0,
+        discount: Number(discount) || 0,
+        shipping: Number(shipping) || 0,
+        taxes: Number(taxes) || 0,
+        total: Number(total) || 0,
+    };
+
+    localStorage.setItem("checkoutTotals", JSON.stringify(safeTotals));
+    window.dispatchEvent(new Event("cartTotalsUpdated")); // evento para refrescar Checkout
 }
 
 export function getTotals() {
-    return JSON.parse(localStorage.getItem("checkoutTotals")) || {};
+    try {
+        const raw = localStorage.getItem("checkoutTotals");
+        if (!raw) {
+            return { subtotal: 0, discount: 0, shipping: 0, taxes: 0, total: 0 };
+        }
+        const parsed = JSON.parse(raw);
+        return {
+            subtotal: Number(parsed.subtotal) || 0,
+            discount: Number(parsed.discount) || 0,
+            shipping: Number(parsed.shipping) || 0,
+            taxes: Number(parsed.taxes) || 0,
+            total: Number(parsed.total) || 0,
+        };
+    } catch {
+        return { subtotal: 0, discount: 0, shipping: 0, taxes: 0, total: 0 };
+    }
 }

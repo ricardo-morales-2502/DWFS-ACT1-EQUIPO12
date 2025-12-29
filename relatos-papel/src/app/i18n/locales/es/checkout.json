@@ -52,6 +52,7 @@
     "title": "Resumen",
     "sub": "Detalle de tu pedido",
     "subtotal": "Subtotal",
+    "discount": "Descuento",
     "shipping": "Envío",
     "taxes": "Impuestos",
     "total": "Total",

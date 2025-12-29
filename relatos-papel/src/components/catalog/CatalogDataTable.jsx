@@ -110,23 +110,22 @@ export default function CatalogDataTable({ lang, rows, onReady }) {
                     sort: (s) => s[lang]
                 }
             },
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: "text-end",
-                render: {
-                    display: (_, __, row) => `
-                    <button class="iconBtn" data-action="view" data-href="${row.href}"
-                        aria-label="${t("table.actions.details")}">
-                        <i class="fa-regular fa-eye"></i>
-                    </button>
-                    <button class="iconBtn iconBtn--primary" data-action="add" data-id="${row.id}"
-                        aria-label="${t("table.actions.add")}">
-                        <i class="fa-solid fa-cart-plus"></i>
-                    </button>
-      `
+            { data: null,
+              orderable: false,
+              searchable: false,
+              className: "text-end",
+              render: {
+                display: (_, __, row) => {
+                    const isAgotado = !row.inStock || row.statusI18n?.es === "Agotado";
+                    return ` 
+                        <button class="iconBtn" data-action="view" data-href="${row.href}" aria-label="${t("table.actions.details")}"> 
+                            <i class="fa-regular fa-eye"></i> 
+                        </button> 
+                        <button class="iconBtn iconBtn--primary" data-action="add" data-id="${row.id}" aria-label="${t("table.actions.add")}" ${isAgotado ? "disabled" : ""}> 
+                            <i class="fa-solid fa-cart-plus"></i> 
+                        </button> `;
                 }
+              }
             }
         ];
 
@@ -161,10 +160,11 @@ export default function CatalogDataTable({ lang, rows, onReady }) {
             if (addBtn) {
                 const id = addBtn.getAttribute("data-id");
                 const book = rows.find((b) => b.id === id);
-                if (book) {
+                if (book && book.inStock && book.statusI18n?.es !== "Agotado") {
                     addToCart(book);
                     navigate(`/${lang}/cart`);
-                } return;
+                }
+                return;
             }
         };
         tableEl.addEventListener("click", handleClick);

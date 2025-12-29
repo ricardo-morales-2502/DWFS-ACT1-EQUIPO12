@@ -11,7 +11,8 @@ export default function CheckoutPanel({
   onClearCoupon,
   subtotal,
   discount,
-  total
+  total,
+  couponError
 }) {
   const { t } = useTranslation("cart");
   const navigate = useNavigate();
@@ -46,6 +47,12 @@ export default function CheckoutPanel({
             {t("checkout.apply")}
           </button>
         </form>
+
+        {couponError && (
+            <div className="text-danger mt-2" role="alert">
+              {couponError}
+            </div>
+        )}
 
         {appliedCoupon && (
           <div className="checkout__applied" role="status" aria-live="polite">
