@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export function useCountdownRedirect({ seconds = 5, to, enabled = false }) {
+export function useCountdownRedirect({ seconds = 5, to, enabled = false, canCancel = true }) {
   const navigate = useNavigate();
   const [remaining, setRemaining] = useState(seconds);
   const [cancelled, setCancelled] = useState(false);
@@ -12,17 +12,19 @@ export function useCountdownRedirect({ seconds = 5, to, enabled = false }) {
     setRemaining(seconds);
     setCancelled(false);
 
+    if (!canCancel) return;
+
     const cancelEvents = ["pointerdown", "keydown", "wheel", "touchstart", "scroll"];
     const onUserIntent = () => setCancelled(true);
 
     cancelEvents.forEach((evt) =>
-      window.addEventListener(evt, onUserIntent, { passive: true, once: true })
+        window.addEventListener(evt, onUserIntent, { passive: true, once: true })
     );
 
     return () => {
       cancelEvents.forEach((evt) => window.removeEventListener(evt, onUserIntent));
     };
-  }, [enabled, seconds]);
+  }, [enabled, seconds, canCancel]);
 
   useEffect(() => {
     if (!enabled || cancelled) return;

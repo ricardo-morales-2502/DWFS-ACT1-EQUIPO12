@@ -15,6 +15,7 @@ import ConfirmPanel from "../../components/checkout/ConfirmPanel";
 import { getCart, getTotals, saveCart, saveTotals } from "../../utils/cartUtils";
 
 import "../../assets/css/styles-checkout.css";
+import { useCountdownRedirect } from "../../hooks/useCountdownRedirect";
 
 export default function CheckoutPage() {
   const { lang } = useParams();
@@ -32,23 +33,33 @@ export default function CheckoutPage() {
   const [cardNumber, setCardNumber] = useState("");
   const [cardExp, setCardExp] = useState("");
   const [cardCvc, setCardCvc] = useState("");
+  const [finalItems, setFinalItems] = useState([]);
+  const [finalTotals, setFinalTotals] = useState(null);
 
   // Totales siempre inicializados con valores seguros
   const [totals, setTotals] = useState(
       getTotals() || { subtotal: 0, discount: 0, shipping: 0, taxes: 0, total: 0 }
   );
 
+  const { remaining } = useCountdownRedirect({
+    seconds: 5,
+    to: `/${lang}/catalog`,
+    enabled: paid,
+    canCancel: false,
+  });
+
+
   useEffect(() => {
     if (lang && i18n.language !== lang) i18n.changeLanguage(lang);
   }, [lang, i18n]);
 
   useEffect(() => {
-    setItems(getCart());
-    setLoading(false);
-    const onTotalsUpdated = () => setTotals(getTotals());
-    window.addEventListener("cartTotalsUpdated", onTotalsUpdated);
-    return () => window.removeEventListener("cartTotalsUpdated", onTotalsUpdated);
-  },
+        setItems(getCart());
+        setLoading(false);
+        const onTotalsUpdated = () => setTotals(getTotals());
+        window.addEventListener("cartTotalsUpdated", onTotalsUpdated);
+        return () => window.removeEventListener("cartTotalsUpdated", onTotalsUpdated);
+      },
       []);
 
   const payDisabled =
@@ -64,6 +75,8 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (payDisabled)
       return;
+    setFinalItems([...items]);
+    setFinalTotals({ ...totals });
     // Guardar resumen en localStorage
     localStorage.setItem("checkoutSummary", JSON.stringify({ items, totals }));
     setPaid(true);
@@ -73,6 +86,7 @@ export default function CheckoutPage() {
     window.dispatchEvent(new Event("cartUpdated"));
     window.dispatchEvent(new Event("cartTotalsUpdated"));
   };
+
 
   return (
       <div className="checkoutPage pay--full">
@@ -97,7 +111,7 @@ export default function CheckoutPage() {
                     {lang === "en" ? "Loading…" : "Cargando…"}
                   </div>
                 </div>
-            ) : items.length === 0 ? (
+            ) : items.length === 0 && !paid ? (
                 <div className="panel panel--elevated">
                   <div className="panel__body">
                     {lang === "en"
@@ -166,7 +180,11 @@ export default function CheckoutPage() {
                   </section>
 
                   <aside className="col-12 col-lg-5" aria-label="Resumen del pedido">
-                    <OrderSummary lang={lang} items={items} totals={totals} />
+                    <OrderSummary
+                        lang={lang}
+                        items={paid ? finalItems : items}
+                        totals={paid ? finalTotals : totals}
+                    />
                   </aside>
                 </div>
             )}
