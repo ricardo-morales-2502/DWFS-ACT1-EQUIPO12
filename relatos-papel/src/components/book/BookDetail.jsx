@@ -1,9 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { useQty } from "../../hooks/useQty";
+import { useNavigate } from "react-router-dom";
+import { addToCart } from "../../utils/cartUtils";
 
 export default function BookDetail({ lang, book }) {
   const { t } = useTranslation("book");
   const qty = useQty(1);
+  const navigate = useNavigate();
 
   const statusText =
     book.statusI18n?.[lang] ??
@@ -13,6 +16,15 @@ export default function BookDetail({ lang, book }) {
 
   const summary =
     lang === "en" ? book.summaryEn || book.desc : book.summaryEs || book.desc;
+
+
+    const handleAddToCart = () => {
+        for (let i = 0; i < qty.value; i++) {
+            addToCart(book);
+        }
+        navigate(`/${lang}/cart`);
+    };
+
 
   return (
     <div className="panel panel--elevated bookDetail">
@@ -112,7 +124,7 @@ export default function BookDetail({ lang, book }) {
 
               <div className="bookDetail__buyRight">
                 <div className="qty" role="group" aria-label={t("detail.qty.groupAria")}>
-                  <button
+                    <button
                     className="qty__btn"
                     type="button"
                     onClick={qty.minus}
@@ -144,14 +156,16 @@ export default function BookDetail({ lang, book }) {
                   </button>
                 </div>
 
-                <button
+                  <button
                   className="btn bookDetail__addBtn"
                   type="button"
                   aria-label={t("detail.addToCart")}
+                  onClick={handleAddToCart}
                 >
                   <i className="fa-solid fa-cart-plus" aria-hidden="true"></i>
                   {t("detail.addToCart")}
                 </button>
+
               </div>
             </div>
 
