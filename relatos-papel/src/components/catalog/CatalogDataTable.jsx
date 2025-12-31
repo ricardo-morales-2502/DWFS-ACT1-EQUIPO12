@@ -21,21 +21,24 @@ export default function CatalogDataTable({ lang, rows, onReady }) {
             ? "https://cdn.datatables.net/plug-ins/1.13.8/i18n/en-GB.json"
             : "https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-ES.json";
 
+
     useEffect(() => {
         if (!tableRef.current) return;
 
         const langChanged = prevLangRef.current !== lang;
 
-        if (dtRef.current && langChanged) {
-            dtRef.current.destroy(false);
-            dtRef.current = null;
-        }
 
         if (dtRef.current && !langChanged) {
             dtRef.current.clear();
             dtRef.current.rows.add(rows);
             dtRef.current.draw();
             return;
+        }
+
+
+        if (dtRef.current && langChanged) {
+            dtRef.current.destroy();
+            dtRef.current = null;
         }
 
         const columns = [
@@ -45,38 +48,33 @@ export default function CatalogDataTable({ lang, rows, onReady }) {
                 searchable: false,
                 render: {
                     display: (cover, type, row) => `
-        <img class="bookCover"
-             src="${cover}"
-             width="96" height="136"
-             alt="${t("table.coverAltPrefix")} ${row.title}"
-             loading="lazy" decoding="async" />
-      `
+                        <img class="bookCover"
+                             src="${cover}"
+                             width="96" height="136"
+                             alt="${t("table.coverAltPrefix")} ${row.title}"
+                             loading="lazy" decoding="async" />
+                    `
                 }
             },
             {
                 data: null,
                 render: {
                     display: (_, __, row) => `
-        <strong class="booksTable__title">${row.title}</strong>
-        <div class="booksTable__desc">${row.desc || ""}</div>
-      `,
+                        <strong class="booksTable__title">${row.title}</strong>
+                        <div class="booksTable__desc">${row.desc || ""}</div>
+                    `,
                     filter: (_, __, row) =>
                         `${row.title} ${row.desc || ""}`.toLowerCase(),
                     sort: (_, __, row) => row.title
                 }
             },
-            {
-                data: "author",
-                className: "booksTable__muted"
-            },
+            { data: "author", className: "booksTable__muted" },
             {
                 data: "genreI18n",
                 render: {
                     display: (g) =>
                         `<span class="booksTable__pill">${g[lang]}</span>`,
-
                     filter: (g) => g[lang],
-
                     sort: (g) => g[lang]
                 }
             },
@@ -100,32 +98,41 @@ export default function CatalogDataTable({ lang, rows, onReady }) {
             {
                 data: "statusI18n",
                 render: {
-                    display: (s) =>
-                        `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
-                        ${s[lang]}
-                    </span>`,
-
+                    display: (s) => `
+                        <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                            ${s[lang]}
+                        </span>
+                    `,
                     filter: (s) => s[lang],
-
                     sort: (s) => s[lang]
                 }
             },
-            { data: null,
-              orderable: false,
-              searchable: false,
-              className: "text-end",
-              render: {
-                display: (_, __, row) => {
-                    const isAgotado = !row.inStock || row.statusI18n?.es === "Agotado";
-                    return ` 
-                        <button class="iconBtn" data-action="view" data-href="${row.href}" aria-label="${t("table.actions.details")}"> 
-                            <i class="fa-regular fa-eye"></i> 
-                        </button> 
-                        <button class="iconBtn iconBtn--primary" data-action="add" data-id="${row.id}" aria-label="${t("table.actions.add")}" ${isAgotado ? "disabled" : ""}> 
-                            <i class="fa-solid fa-cart-plus"></i> 
-                        </button> `;
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: "text-end",
+                render: {
+                    display: (_, __, row) => {
+                        const isAgotado =
+                            !row.inStock || row.statusI18n?.es === "Agotado";
+                        return `
+                            <button class="iconBtn"
+                                    data-action="view"
+                                    data-href="${row.href}"
+                                    aria-label="${t("table.actions.details")}">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                            <button class="iconBtn iconBtn--primary"
+                                    data-action="add"
+                                    data-id="${row.id}"
+                                    aria-label="${t("table.actions.add")}"
+                                    ${isAgotado ? "disabled" : ""}>
+                                <i class="fa-solid fa-cart-plus"></i>
+                            </button>
+                        `;
+                    }
                 }
-              }
             }
         ];
 
@@ -147,33 +154,48 @@ export default function CatalogDataTable({ lang, rows, onReady }) {
     }, [rows, lang, dtLangUrl, t, onReady]);
 
     useEffect(() => {
-        if (!tableRef.current || clickBoundRef.current)
-            return;
+        if (!tableRef.current || clickBoundRef.current) return;
+
         const tableEl = tableRef.current;
+
         const handleClick = (e) => {
             const viewBtn = e.target.closest("button[data-action='view']");
             const addBtn = e.target.closest("button[data-action='add']");
+
             if (viewBtn) {
                 const slug = viewBtn.getAttribute("data-href");
-                if (slug) { navigate(`/${lang}/catalog/book/${slug}`); } return;
+                if (slug) navigate(`/${lang}/catalog/book/${slug}`);
+                return;
             }
+
             if (addBtn) {
                 const id = addBtn.getAttribute("data-id");
                 const book = rows.find((b) => b.id === id);
+
                 if (book && book.inStock && book.statusI18n?.es !== "Agotado") {
                     addToCart(book);
                     navigate(`/${lang}/cart`);
                 }
-                return;
             }
         };
+
         tableEl.addEventListener("click", handleClick);
         clickBoundRef.current = true;
+
         return () => {
             tableEl.removeEventListener("click", handleClick);
             clickBoundRef.current = false;
-            };
-        }, [lang, navigate, rows]);
+        };
+    }, [lang, navigate, rows]);
+
+    useEffect(() => {
+        return () => {
+            if (dtRef.current) {
+                dtRef.current.destroy();
+                dtRef.current = null;
+            }
+        };
+    }, []);
 
     return (
         <table
@@ -183,16 +205,18 @@ export default function CatalogDataTable({ lang, rows, onReady }) {
             aria-label={t("table.aria")}
         >
             <thead className="booksTable__head">
-                <tr>
-                    <th className="booksTable__th">{t("table.th.cover")}</th>
-                    <th className="booksTable__th">{t("table.th.title")}</th>
-                    <th className="booksTable__th">{t("table.th.author")}</th>
-                    <th className="booksTable__th">{t("table.th.genre")}</th>
-                    <th className="booksTable__th">{t("table.th.rating")}</th>
-                    <th className="booksTable__th">{t("table.th.price")}</th>
-                    <th className="booksTable__th">{t("table.th.status")}</th>
-                    <th className="booksTable__th text-end">{t("table.th.actions")}</th>
-                </tr>
+            <tr>
+                <th className="booksTable__th">{t("table.th.cover")}</th>
+                <th className="booksTable__th">{t("table.th.title")}</th>
+                <th className="booksTable__th">{t("table.th.author")}</th>
+                <th className="booksTable__th">{t("table.th.genre")}</th>
+                <th className="booksTable__th">{t("table.th.rating")}</th>
+                <th className="booksTable__th">{t("table.th.price")}</th>
+                <th className="booksTable__th">{t("table.th.status")}</th>
+                <th className="booksTable__th text-end">
+                    {t("table.th.actions")}
+                </th>
+            </tr>
             </thead>
             <tbody />
         </table>

@@ -37,9 +37,18 @@ export default function CatalogPage() {
         const res = await fetch("/data/books-v2.json");
         const data = await res.json();
 
-        if (alive) setBooks(Array.isArray(data) ? data : []);
+        if (alive) {
+          // 🔹 Filtrar duplicados por id
+          const uniqueBooks = Array.isArray(data)
+              ? data.filter(
+                  (book, index, self) =>
+                      index === self.findIndex((b) => b.id === book.id)
+              )
+              : [];
+          setBooks(uniqueBooks);
+        }
       } catch (e) {
-        console.error("Error cargando books-v1.json:", e);
+        console.error("Error cargando books-v2.json:", e);
         if (alive) setBooks([]);
       } finally {
         if (alive) setLoading(false);
@@ -50,6 +59,7 @@ export default function CatalogPage() {
       alive = false;
     };
   }, []);
+
 
   useEffect(() => {
     if (!dtApi) return;
